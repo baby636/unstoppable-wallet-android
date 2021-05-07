@@ -5,13 +5,13 @@ import com.trustwallet.walletconnect.models.ethereum.WCEthereumTransaction
 import io.horizontalsystems.bankwallet.core.Clearable
 import io.horizontalsystems.bankwallet.core.managers.ConnectivityManager
 import io.horizontalsystems.bankwallet.core.managers.WalletConnectInteractor
+import io.horizontalsystems.bankwallet.core.subscribeIO
 import io.horizontalsystems.bankwallet.entities.Account
 import io.horizontalsystems.bankwallet.entities.WalletConnectSession
 import io.horizontalsystems.ethereumkit.core.EthereumKit
 import io.reactivex.BackpressureStrategy
 import io.reactivex.Flowable
 import io.reactivex.disposables.CompositeDisposable
-import io.reactivex.schedulers.Schedulers
 import io.reactivex.subjects.PublishSubject
 
 class WalletConnectService(
@@ -83,10 +83,8 @@ class WalletConnectService(
         }
 
         connectivityManager.networkAvailabilitySignal
-                .subscribeOn(Schedulers.io())
-                .observeOn(Schedulers.io())
-                .subscribe {
-                    if (connectivityManager.isConnected) {
+                .subscribeIO {
+                    if (connectivityManager.isConnected && interactor?.state == WalletConnectInteractor.State.Disconnected) {
                         interactor?.connect()
                     }
                 }
@@ -116,10 +114,22 @@ class WalletConnectService(
         sessionData = SessionData(peerId, peerMeta, account, evmKit)
     }
 
+    private fun getSessionFromUri(uri: String): WalletConnectSession? {
+        return sessionManager.sessions.firstOrNull { session -> "wc:${session.session.topic}@${session.session.version}" == uri }
+    }
+
     fun connect(uri: String) {
-        interactor = WalletConnectInteractor(uri)
-        interactor?.delegate = this
-        interactor?.connect()
+        val session = getSessionFromUri(uri)
+
+        if (session != null) {
+            if (sessionData?.peerId != session.remotePeerId) { // session is not current active session
+                restoreSession(session)
+            }
+        } else {
+            interactor = WalletConnectInteractor(uri)
+            interactor?.delegate = this
+            interactor?.connect()
+        }
     }
 
     override fun clear() {
