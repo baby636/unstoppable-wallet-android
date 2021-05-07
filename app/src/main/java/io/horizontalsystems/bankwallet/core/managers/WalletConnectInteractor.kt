@@ -3,6 +3,7 @@ package io.horizontalsystems.bankwallet.core.managers
 import com.google.gson.GsonBuilder
 import com.trustwallet.walletconnect.WCClient
 import com.trustwallet.walletconnect.models.WCPeerMeta
+import com.trustwallet.walletconnect.models.ethereum.WCEthereumSignMessage
 import com.trustwallet.walletconnect.models.ethereum.WCEthereumTransaction
 import com.trustwallet.walletconnect.models.session.WCSession
 import com.trustwallet.walletconnect.models.session.WCSessionUpdate
@@ -23,6 +24,7 @@ class WalletConnectInteractor(
         fun didRequestSession(remotePeerId: String, remotePeerMeta: WCPeerMeta, chainId: Int?)
         fun didKillSession()
         fun didRequestSendEthTransaction(id: Long, transaction: WCEthereumTransaction)
+        fun didRequestSignMessage(id: Long, message: WCEthereumSignMessage)
     }
 
     enum class State {
@@ -74,18 +76,34 @@ class WalletConnectInteractor(
             delegate?.didRequestSendEthTransaction(id, transaction)
         }
 
-        client.onEthSignTransaction = { id, _ ->
+        client.onEthSignTransaction = { id, transaction ->
             rejectWithNotSupported(id)
         }
 
-        client.onEthSign = { id, _ -> rejectWithNotSupported(id) }
-        client.onCustomRequest = { id, _ -> rejectWithNotSupported(id) }
-        client.onBnbTrade = { id, _ -> rejectWithNotSupported(id) }
-        client.onBnbCancel = { id, _ -> rejectWithNotSupported(id) }
-        client.onBnbTransfer = { id, _ -> rejectWithNotSupported(id) }
-        client.onBnbTxConfirm = { id, _ -> rejectWithNotSupported(id) }
-        client.onGetAccounts = { id -> rejectWithNotSupported(id) }
-        client.onSignTransaction = { id, _ -> rejectWithNotSupported(id) }
+        client.onEthSign = { id, message ->
+            delegate?.didRequestSignMessage(id, message)
+        }
+        client.onCustomRequest = { id, string ->
+            rejectWithNotSupported(id)
+        }
+        client.onBnbTrade = { id, tradeOrder ->
+            rejectWithNotSupported(id)
+        }
+        client.onBnbCancel = { id, cancelOrder ->
+            rejectWithNotSupported(id)
+        }
+        client.onBnbTransfer = { id, transferOrder ->
+            rejectWithNotSupported(id)
+        }
+        client.onBnbTxConfirm = { id, confirmParam ->
+            rejectWithNotSupported(id)
+        }
+        client.onGetAccounts = { id ->
+            rejectWithNotSupported(id)
+        }
+        client.onSignTransaction = { id, signTransaction ->
+            rejectWithNotSupported(id)
+        }
     }
 
     fun connect() {

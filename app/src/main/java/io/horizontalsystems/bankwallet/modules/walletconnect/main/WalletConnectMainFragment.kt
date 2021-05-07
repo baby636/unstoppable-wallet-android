@@ -18,10 +18,8 @@ import io.horizontalsystems.bankwallet.core.managers.WalletConnectInteractor
 import io.horizontalsystems.bankwallet.core.setOnSingleClickListener
 import io.horizontalsystems.bankwallet.core.utils.ModuleField
 import io.horizontalsystems.bankwallet.modules.qrscanner.QRScannerActivity
-import io.horizontalsystems.bankwallet.modules.walletconnect.WalletConnectErrorFragment
-import io.horizontalsystems.bankwallet.modules.walletconnect.WalletConnectModule
-import io.horizontalsystems.bankwallet.modules.walletconnect.WalletConnectSendEthereumTransactionRequest
-import io.horizontalsystems.bankwallet.modules.walletconnect.WalletConnectViewModel
+import io.horizontalsystems.bankwallet.modules.walletconnect.*
+import io.horizontalsystems.bankwallet.modules.walletconnect.request.signmessage.WalletConnectSignMessageRequestModule
 import io.horizontalsystems.bankwallet.modules.walletconnect.scanqr.WalletConnectScanQrModule
 import io.horizontalsystems.bankwallet.modules.walletconnect.scanqr.WalletConnectScanQrViewModel
 import io.horizontalsystems.bankwallet.ui.extensions.ConfirmationDialog
@@ -44,8 +42,9 @@ class WalletConnectMainFragment : BaseFragment() {
                 }
             }
             Activity.RESULT_CANCELED -> {
-                val sessionsCount = arguments?.getInt(WalletConnectMainModule.SESSIONS_COUNT_KEY) ?: 0
-                if (sessionsCount == 0){
+                val sessionsCount = arguments?.getInt(WalletConnectMainModule.SESSIONS_COUNT_KEY)
+                        ?: 0
+                if (sessionsCount == 0) {
                     findNavController().popBackStack(R.id.mainFragment, false)
                 } else {
                     findNavController().popBackStack()
@@ -151,10 +150,15 @@ class WalletConnectMainFragment : BaseFragment() {
         })
 
         viewModel.openRequestLiveEvent.observe(viewLifecycleOwner, {
-            if (it is WalletConnectSendEthereumTransactionRequest) {
-                baseViewModel.sharedSendEthereumTransactionRequest = it
+            when (it) {
+                is WalletConnectSendEthereumTransactionRequest -> {
+                    baseViewModel.sharedSendEthereumTransactionRequest = it
 
-                findNavController().navigate(R.id.walletConnectMainFragment_to_walletConnectSendEthereumTransactionRequestFragment, null, navOptionsFromBottom())
+                    findNavController().navigate(R.id.walletConnectMainFragment_to_walletConnectSendEthereumTransactionRequestFragment, null, navOptionsFromBottom())
+                }
+                is WalletConnectSignMessageRequest -> {
+                    WalletConnectSignMessageRequestModule.start(this, R.id.walletConnectMainFragment_to_walletConnectSignMessageRequestFragment, navOptionsFromBottom(), it)
+                }
             }
         })
 
